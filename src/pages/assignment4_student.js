@@ -9,11 +9,6 @@ import BarChart from '../components/BarChart'
 
 const csvUrl = 'https://gist.githubusercontent.com/hogwild/3b9aa737bde61dcb4dfa60cde8046e04/raw/citibike2020.csv'
 
-//the following function is used to load the data from the csv file
-//it returns the data in the form of an array of objects
-//each object represents a row in the csv file
-//the keys of the object are the column names in the csv file
-//the values of the object are the values in the corresponding row in the csv file
 function useData(csvPath){
     const [dataAll, setData] = React.useState(null);
     React.useEffect(()=>{
@@ -30,83 +25,105 @@ function useData(csvPath){
     return dataAll;
 }
 
-
 const Charts = () => {
-    const [month, setMonth] = React.useState('4'); //It is a useState hook that initializes the month to May (4th month)
-
+    const [month, setMonth] = React.useState('4'); // 默认月份: '4' => May
     const dataAll = useData(csvUrl);
 
-    //if dataAll is null, it will return a loading message
-    //it guarantees that the data is loaded before the rest of the code
     if (!dataAll) {
         return <pre>Loading...</pre>;
-    };
+    }
+
     const WIDTH = 600;
     const HEIGHT = 400;
-    const margin = { top: 20, right: 20, bottom: 20, left: 35};
+    const margin = { top: 20, right: 20, bottom: 20, left: 35 };
     const innerHeightScatter = HEIGHT - margin.top - margin.bottom;
-    const innerHeightBar = HEIGHT - margin.top - margin.bottom-120;
+    const innerHeightBar = HEIGHT - margin.top - margin.bottom - 120;
     const innerWidth = WIDTH - margin.left - margin.right;
-    const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const data = dataAll.filter( d => { 
-        return d.month === MONTH[month] 
-    });
 
-    //The following scales are used to map the data values to the screen coordinates
-    //The scales are defined based on the data values
-    //The scales are used in the ScatterPlot and BarChart components
+    const MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // 根据所选月份过滤数据
+    const data = dataAll.filter(d => d.month === MONTH[month]);
+
+    // 1. 散点图用到的比例尺
     const xScaleScatter = d3.scaleLinear()
         .domain([0, d3.max(dataAll, d => d.tripdurationS)])
         .range([0, innerWidth])
-        .nice(); //nice() function extends the domain to the nearest round value
+        .nice();
+
     const yScaleScatter = d3.scaleLinear()
         .domain([0, d3.max(dataAll, d => d.tripdurationE)])
         .range([innerHeightScatter, 0])
         .nice();
 
-    //Task 6: Complete the xScaleBar and yScaleBar
-    //Hint: use d3.scaleBand for xScaleBar
-    const xScaleBar=[]; //replace it with the correct scale
-       
-    const yScaleBar=[]; //replace it with the correct scale
+    // 2. Task 6: 为柱状图定义 xScaleBar 和 yScaleBar
+    //    提示：柱状图 X 轴用车站名称 station 作刻度，所以使用 scaleBand()
+    //          柱状图 Y 轴可以使用 tripdurationE (或你想展示的度量)
+    //    这里以 tripdurationE 为例，且对所有 station 直接画柱子（不聚合）
+    const xScaleBar = d3.scaleBand()
+        .domain(data.map(d => d.station)) // station 名称作为刻度
+        .range([0, innerWidth])
+        .padding(0.1);
 
+    const yScaleBar = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.tripdurationE)])
+        .range([innerHeightBar, 0])
+        .nice();
 
-    //Task1: Complete the changeHandler function
-    //The function is used in the <input> tag as the callback function for the onChange event
-    //It should update the month based on the value of the input element
-    //Hint: use setMonth function; also you can use console.log to see the value of event.target.value
+    // 改变滑动条时，更新 month
     const changeHandler = (event) => {
         setMonth(event.target.value);
         console.log('Selected month index:', event.target.value);
     };
+
     return (
-        <Container >
+        <Container>
             <Row>
                 <Col lg={3} md={2}>
-                    <input key="slider" type='range' min='0' max='11' value={month} step='1' onChange={changeHandler}/>
-                    <input key="monthText" type="text" value={MONTH[month]} readOnly/>
+                    <input
+                        key="slider"
+                        type='range'
+                        min='0'
+                        max='11'
+                        value={month}
+                        step='1'
+                        onChange={changeHandler}
+                    />
+                    <input
+                        key="monthText"
+                        type="text"
+                        value={MONTH[month]}
+                        readOnly
+                    />
                 </Col>
-                
             </Row>
             <Row className='justify-content-md-center'>
                 <Col>
-                    <ScatterPlot svgWidth={WIDTH} svgHeight={HEIGHT} marginLeft={margin.left} marginTop={margin.top} data={data} xScale={xScaleScatter} 
-                        yScale={yScaleScatter} />
+                    <ScatterPlot
+                        svgWidth={WIDTH}
+                        svgHeight={HEIGHT}
+                        marginLeft={margin.left}
+                        marginTop={margin.top}
+                        data={data}
+                        xScale={xScaleScatter}
+                        yScale={yScaleScatter}
+                    />
                 </Col>
                 <Col>
-                    {//Todo: uncomment the following line when you complete the xScaleBar and yScaleBar and work on the bar chart
-                    }
-                    {/* <BarChart svgWidth={WIDTH} svgHeight={HEIGHT} marginLeft={margin.left} marginTop={margin.bottom} data={data} xScale={xScaleBar} 
-                        yScale={yScaleBar} />  */}
+                    {/* 取消注释，启用 BarChart */}
+                    <BarChart
+                        svgWidth={WIDTH}
+                        svgHeight={HEIGHT}
+                        marginLeft={margin.left}
+                        marginTop={margin.bottom}
+                        data={data}
+                        xScale={xScaleBar}
+                        yScale={yScaleBar}
+                    />
                 </Col>
             </Row>
         </Container>
-    )   
-}
+    );
+};
 
-
-export default Charts
-
-
-
-
+export default Charts;
